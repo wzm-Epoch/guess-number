@@ -15,6 +15,14 @@ export interface GameState extends GameConfig {
   status: GameStatus;
 }
 
+export type GuessError = "not-integer" | "out-of-range" | "duplicate" | "game-over";
+
+export type GuessOutcome = "low" | "high" | "correct" | "lost";
+
+export type GuessResult =
+  | { ok: false; error: GuessError; state: GameState }
+  | { ok: true; outcome: GuessOutcome; state: GameState };
+
 export type GameConfigurationErrorCode = "invalid-config" | "invalid-secret";
 
 export class GameConfigurationError extends RangeError {
@@ -67,5 +75,60 @@ export function createGame(config: GameConfig, secretNumber: number): GameState 
     lowerBound: minNumber,
     upperBound: maxNumber,
     status: "ready"
+  };
+}
+
+export function submitGuess(state: GameState, guess: number): GuessResult {
+  if (state.status === "won" || state.status === "lost") {
+    return { ok: false, error: "game-over", state };
+  }
+
+  if (!Number.isInteger(guess)) {
+    return { ok: false, error: "not-integer", state };
+  }
+
+  if (guess < state.minNumber || guess > state.maxNumber) {
+    return { ok: false, error: "out-of-range", state };
+  }
+
+  if (state.guesses.includes(guess)) {
+    return { ok: false, error: "duplicate", state };
+  }
+
+  const attempts = state.attempts + 1;
+  const guesses = [...state.guesses, guess];
+
+  if (guess === state.secretNumber) {
+    return {
+      ok: true,
+      outcome: "correct",
+      state: {
+        ...state,
+        attempts,
+        guesses,
+        lowerBound: guess,
+        upperBound: guess,
+        status: "won"
+      }
+    };
+  }
+
+  const outcome: GuessOutcome = attempts >= state.attemptLimit
+    ? "lost"
+    : guess < state.secretNumber
+      ? "low"
+      : "high";
+
+  return {
+    ok: true,
+    outcome,
+    state: {
+      ...state,
+      attempts,
+      guesses,
+      lowerBound: guess < state.secretNumber ? Math.max(state.lowerBound, guess + 1) : state.lowerBound,
+      upperBound: guess > state.secretNumber ? Math.min(state.upperBound, guess - 1) : state.upperBound,
+      status: outcome === "lost" ? "lost" : "active"
+    }
   };
 }
