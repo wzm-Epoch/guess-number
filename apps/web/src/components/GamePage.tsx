@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { createRandomSecret } from "../game/random-secret";
 import { useSinglePlayerGame } from "../game/use-single-player-game";
@@ -7,6 +7,7 @@ import { GameFeedback } from "./GameFeedback";
 import { GameStats } from "./GameStats";
 import { GuessForm } from "./GuessForm";
 import { GuessHistory } from "./GuessHistory";
+import { HistoryDialog } from "./HistoryDialog";
 import { ResultPanel } from "./ResultPanel";
 
 const gameConfig = { minNumber: 1, maxNumber: 100, attemptLimit: 9 } as const;
@@ -31,6 +32,8 @@ export function GamePage({
   createRecordId = defaultRecordId
 }: GamePageProps) {
   const [inputValue, setInputValue] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyTriggerRef = useRef<HTMLButtonElement>(null);
   const secretFactory = useMemo(
     () => createSecret ?? (() => createRandomSecret(1, 100, Math.random)),
     [createSecret]
@@ -70,7 +73,10 @@ export function GamePage({
               <h1 id="game-title">数字侦探</h1>
             </div>
           </div>
-          <button type="button" onClick={handleRestart}>重开</button>
+          <div className="top-actions">
+            <button ref={historyTriggerRef} type="button" onClick={() => setHistoryOpen(true)}>战绩</button>
+            <button type="button" onClick={handleRestart}>重开</button>
+          </div>
         </header>
 
         <p className="intro">我在 <strong>1–100</strong> 之间藏了一个数字，你有 <strong>9 次机会</strong>找到它。</p>
@@ -103,6 +109,12 @@ export function GamePage({
 
         <GuessHistory state={game.state} />
         <ResultPanel state={game.state} onRestart={handleRestart} />
+        <HistoryDialog
+          open={historyOpen}
+          profile={game.profile}
+          onClose={() => setHistoryOpen(false)}
+          returnFocusRef={historyTriggerRef}
+        />
       </section>
     </main>
   );
