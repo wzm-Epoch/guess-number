@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/game-core" }
+    { "path": "./packages/game-core" },
+    { "path": "./apps/web" }
   ]
 }
