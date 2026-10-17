@@ -18,7 +18,9 @@ import { fileURLToPath } from "node:url";
 import {
   buildNpmInvocation,
   buildViteArgs,
+  failureExitCode,
   findAvailablePort,
+  installWithNpm,
   isSupportedNodeVersion,
   needsDependencyInstall,
   parseNodeMajor,
@@ -32,6 +34,20 @@ test("runs npm through the Windows command processor", () => {
     command: "C:\\Windows\\System32\\cmd.exe",
     args: ["/d", "/c", "npm.cmd", "ci"]
   });
+});
+
+test("preserves the npm install failure exit code", () => {
+  let invocation;
+  assert.throws(
+    () => installWithNpm("C:\\game", (command, args, options) => {
+      invocation = { command, args, options };
+      return { status: 17 };
+    }),
+    (error) => error.exitCode === 17
+  );
+  assert.equal(invocation.options.cwd, "C:\\game");
+  assert.equal(failureExitCode({ exitCode: 17 }), 17);
+  assert.equal(failureExitCode(new Error("unknown")), 1);
 });
 
 test("parses supported Node versions and rejects malformed or old versions", () => {
@@ -315,6 +331,11 @@ test("CMD entry checks prerequisites and delegates from its own directory", {
     0,
     `stdout: ${missingNode.stdout}\nstderr: ${missingNode.stderr}`
   );
+  assert.match(
+    missingNode.stdout,
+    /未找到 Node\.js/,
+    `stdout: ${missingNode.stdout}\nstderr: ${missingNode.stderr}`
+  );
   assert.equal(existsSync(logPath), false);
 
   copyFileSync(process.execPath, nodePath);
@@ -335,6 +356,11 @@ test("CMD entry checks prerequisites and delegates from its own directory", {
   assert.notEqual(
     missingNpm.status,
     0,
+    `stdout: ${missingNpm.stdout}\nstderr: ${missingNpm.stderr}`
+  );
+  assert.match(
+    missingNpm.stdout,
+    /未找到 npm/,
     `stdout: ${missingNpm.stdout}\nstderr: ${missingNpm.stderr}`
   );
   assert.equal(existsSync(logPath), false);

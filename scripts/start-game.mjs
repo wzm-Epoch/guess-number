@@ -176,16 +176,25 @@ export async function runLauncher(options) {
   return { url, child };
 }
 
-function installWithNpm(projectRoot) {
+export function failureExitCode(error) {
+  const exitCode = error?.exitCode;
+  return Number.isInteger(exitCode) && exitCode > 0 && exitCode <= 0xffff_ffff
+    ? exitCode
+    : 1;
+}
+
+export function installWithNpm(projectRoot, run = spawnSync) {
   const invocation = buildNpmInvocation(["ci"]);
-  const result = spawnSync(invocation.command, invocation.args, {
+  const result = run(invocation.command, invocation.args, {
     cwd: projectRoot,
     stdio: "inherit",
     windowsHide: false
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    throw new Error(`npm ci failed with exit code ${result.status ?? "unknown"}.`);
+    const error = new Error(`npm ci failed with exit code ${result.status ?? "unknown"}.`);
+    error.exitCode = result.status;
+    throw error;
   }
 }
 
@@ -243,6 +252,6 @@ const directEntry = process.argv[1]
 if (import.meta.url === directEntry) {
   main().catch((error) => {
     console.error(`启动失败：${error instanceof Error ? error.message : String(error)}`);
-    process.exitCode = 1;
+    process.exitCode = failureExitCode(error);
   });
 }
