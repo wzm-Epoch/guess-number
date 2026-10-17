@@ -3,7 +3,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { createRandomSecret } from "../game/random-secret";
 import { useSinglePlayerGame } from "../game/use-single-player-game";
 import type { StorageLike } from "../profile/local-profile";
+import type { GameReward } from "../profile/profile-actions";
+import { getBlessing } from "../profile/progression";
 import { useLocalProfile } from "../profile/use-local-profile";
+import { ConfettiLayer } from "./ConfettiLayer";
 import { GameFeedback } from "./GameFeedback";
 import { GameStats } from "./GameStats";
 import { GuessForm } from "./GuessForm";
@@ -38,6 +41,7 @@ export function GamePage({
 }: GamePageProps) {
   const [inputValue, setInputValue] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [completion, setCompletion] = useState<{ reward: GameReward; blessing: string } | null>(null);
   const historyTriggerRef = useRef<HTMLButtonElement>(null);
   const secretFactory = useMemo(
     () => createSecret ?? (() => createRandomSecret(1, 100, Math.random)),
@@ -45,7 +49,11 @@ export function GamePage({
   );
   const profile = useLocalProfile({ storage, createAccountId, hashPassword });
   const handleFinished = useCallback((finishedState: Parameters<typeof profile.recordGame>[0]) => {
-    profile.recordGame(finishedState, now(), createRecordId());
+    const reward = profile.recordGame(finishedState, now(), createRecordId());
+    setCompletion({
+      reward,
+      blessing: finishedState.status === "won" ? getBlessing(finishedState.attempts) : ""
+    });
   }, [createRecordId, now, profile.recordGame]);
   const game = useSinglePlayerGame({
     config: gameConfig,
@@ -65,6 +73,7 @@ export function GamePage({
   function handleRestart() {
     game.restart();
     setInputValue("");
+    setCompletion(null);
   }
 
   const isOver = game.state.status === "won" || game.state.status === "lost";
@@ -72,6 +81,7 @@ export function GamePage({
   return (
     <main className="game-shell">
       <section className="game-card" aria-labelledby="game-title">
+        <ConfettiLayer active={game.state.status === "won"} />
         <header className="topbar">
           <div className="brand">
             <span aria-hidden="true">🎯</span>
@@ -115,7 +125,14 @@ export function GamePage({
         </section>
 
         <GuessHistory state={game.state} />
-        <ResultPanel state={game.state} onRestart={handleRestart} />
+        {completion ? (
+          <ResultPanel
+            state={game.state}
+            reward={completion.reward}
+            blessing={completion.blessing}
+            onRestart={handleRestart}
+          />
+        ) : null}
         <HistoryDialog
           open={historyOpen}
           profile={profile.currentAccount}

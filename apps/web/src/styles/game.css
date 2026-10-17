@@ -300,7 +300,7 @@
   backdrop-filter: blur(22px);
 }
 
-.result-panel > div {
+.result-panel .result-icon {
   margin-bottom: 12px;
   font-size: 50px;
 }
@@ -313,6 +313,23 @@
 .result-panel p {
   margin-bottom: 9px;
   color: var(--muted);
+}
+
+.result-panel .blessing {
+  max-width: 340px;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.result-panel .reward-note {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: center;
 }
 
 .result-panel button {

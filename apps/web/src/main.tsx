@@ -8,6 +8,7 @@ import "./styles/game.css";
 import "./styles/dialog.css";
 import "./styles/account.css";
 import "./styles/profile.css";
+import "./styles/effects.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Application root is missing.");
