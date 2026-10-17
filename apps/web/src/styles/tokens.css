@@ -1,0 +1,89 @@
+:root,
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --bg: #090d1c;
+  --card: rgba(18, 24, 47, 0.94);
+  --card-soft: rgba(255, 255, 255, 0.055);
+  --panel: rgba(9, 14, 32, 0.82);
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.17);
+  --text: #f7f8ff;
+  --muted: #9da7c4;
+  --primary: #9b87ff;
+  --primary-strong: #6d5dfc;
+  --accent: #4fd8ff;
+  --green: #61e6a8;
+  --orange: #ffbb66;
+  --red: #ff7185;
+  --glow-1: rgba(109, 93, 252, 0.28);
+  --glow-2: rgba(79, 216, 255, 0.17);
+  --shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+}
+
+:root[data-theme="ocean"] {
+  --bg: #06141c;
+  --card: rgba(9, 35, 47, 0.95);
+  --card-soft: rgba(120, 235, 255, 0.06);
+  --panel: rgba(5, 27, 38, 0.84);
+  --line: rgba(132, 238, 255, 0.12);
+  --line-strong: rgba(132, 238, 255, 0.21);
+  --text: #f2fcff;
+  --muted: #96bec8;
+  --primary: #2788ff;
+  --primary-strong: #16b8d4;
+  --accent: #4fe3d0;
+  --glow-1: rgba(39, 136, 255, 0.3);
+  --glow-2: rgba(79, 227, 208, 0.2);
+  --shadow: 0 28px 80px rgba(0, 10, 18, 0.58);
+}
+
+:root[data-theme="forest"] {
+  --bg: #07160f;
+  --card: rgba(11, 39, 26, 0.95);
+  --card-soft: rgba(139, 240, 174, 0.055);
+  --panel: rgba(5, 30, 18, 0.84);
+  --line: rgba(153, 232, 180, 0.12);
+  --line-strong: rgba(153, 232, 180, 0.21);
+  --text: #f3fff6;
+  --muted: #9ac4a8;
+  --primary: #52d273;
+  --primary-strong: #25a55a;
+  --accent: #9ee66d;
+  --glow-1: rgba(37, 165, 90, 0.3);
+  --glow-2: rgba(158, 230, 109, 0.18);
+  --shadow: 0 28px 80px rgba(0, 12, 6, 0.55);
+}
+
+:root[data-theme="sunset"] {
+  --bg: #1a0e0b;
+  --card: rgba(49, 25, 18, 0.95);
+  --card-soft: rgba(255, 210, 150, 0.06);
+  --panel: rgba(39, 19, 14, 0.84);
+  --line: rgba(255, 205, 145, 0.13);
+  --line-strong: rgba(255, 205, 145, 0.22);
+  --text: #fff9f2;
+  --muted: #cfad98;
+  --primary: #ff9b54;
+  --primary-strong: #e15d3f;
+  --accent: #ffd166;
+  --glow-1: rgba(225, 93, 63, 0.31);
+  --glow-2: rgba(255, 209, 102, 0.18);
+  --shadow: 0 28px 80px rgba(20, 5, 0, 0.55);
+}
+
+:root[data-theme="rose"] {
+  --bg: #1b0b16;
+  --card: rgba(53, 18, 42, 0.95);
+  --card-soft: rgba(255, 174, 223, 0.06);
+  --panel: rgba(43, 14, 34, 0.84);
+  --line: rgba(255, 180, 223, 0.13);
+  --line-strong: rgba(255, 180, 223, 0.22);
+  --text: #fff5fb;
+  --muted: #cba8bf;
+  --primary: #f472b6;
+  --primary-strong: #c026d3;
+  --accent: #f9a8d4;
+  --glow-1: rgba(192, 38, 211, 0.3);
+  --glow-2: rgba(249, 168, 212, 0.18);
+  --shadow: 0 28px 80px rgba(20, 0, 15, 0.55);
+}
