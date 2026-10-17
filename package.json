@@ -13,6 +13,7 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint .",
     "test": "vitest",
+    "test:launcher": "node --test scripts/start-game.test.mjs",
     "test:e2e": "npm run test:e2e --workspace @guess-number/web --if-present"
   },
   "devDependencies": {
