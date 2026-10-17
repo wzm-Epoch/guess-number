@@ -2,10 +2,12 @@ import { render, screen } from "@testing-library/react";
 import { useRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { GuestProfile } from "../storage/guest-profile";
+import type { LocalAccount } from "../profile/local-profile";
 import * as historyModule from "./HistoryDialog";
 
-function Harness({ profile, ownerLabel = "游客" }: { profile: GuestProfile; ownerLabel?: string }) {
+type HistoryProfile = Pick<LocalAccount, "points" | "records">;
+
+function Harness({ profile, ownerLabel = "游客" }: { profile: HistoryProfile; ownerLabel?: string }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const HistoryDialog = historyModule.HistoryDialog;
   return (
@@ -35,7 +37,7 @@ describe("HistoryDialog", () => {
   });
 
   it("renders normalized records, summary counts, and HTML-shaped text literally", () => {
-    const profile: GuestProfile = {
+    const profile: HistoryProfile = {
       points: 1,
       records: [
         {

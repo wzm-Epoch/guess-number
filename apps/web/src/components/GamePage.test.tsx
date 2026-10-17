@@ -85,10 +85,20 @@ describe("GamePage", () => {
     expect(input).toBeDisabled();
     expect(createRecordId).toHaveBeenCalledTimes(1);
     expect(storage.writeCount).toBe(1);
-    expect(JSON.parse(storage.values.get("number-detective.guest.v1") ?? "null")).toMatchObject({
-      points: 1,
-      records: [{ id: "record-1", result: "won", secretNumber: 42 }]
+    expect(JSON.parse(storage.values.get("number-detective.local-accounts.v1") ?? "null")).toMatchObject({
+      version: 1,
+      currentAccountId: "guest",
+      accounts: {
+        guest: {
+          points: 1,
+          records: [{ id: "record-1", result: "won", secretNumber: 42 }]
+        }
+      }
     });
+
+    fireEvent.submit(input.closest("form")!);
+    expect(createRecordId).toHaveBeenCalledTimes(1);
+    expect(storage.writeCount).toBe(1);
 
     await user.click(screen.getByRole("button", { name: "再玩一局" }));
     expect(createSecret).toHaveBeenCalledTimes(2);
@@ -109,9 +119,13 @@ describe("GamePage", () => {
     expect(screen.getByRole("heading", { name: "差一点点" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("机会用完了");
     expect(input).toBeDisabled();
-    expect(JSON.parse(storage.values.get("number-detective.guest.v1") ?? "null")).toMatchObject({
-      points: 0,
-      records: [{ result: "lost", attempts: 9, secretNumber: 100 }]
+    expect(JSON.parse(storage.values.get("number-detective.local-accounts.v1") ?? "null")).toMatchObject({
+      accounts: {
+        guest: {
+          points: 0,
+          records: [{ result: "lost", attempts: 9, secretNumber: 100 }]
+        }
+      }
     });
   });
 });

@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { createRandomSecret } from "../game/random-secret";
 import { useSinglePlayerGame } from "../game/use-single-player-game";
-import type { StorageLike } from "../storage/guest-profile";
+import type { StorageLike } from "../profile/local-profile";
+import { useLocalProfile } from "../profile/use-local-profile";
 import { GameFeedback } from "./GameFeedback";
 import { GameStats } from "./GameStats";
 import { GuessForm } from "./GuessForm";
@@ -17,6 +18,8 @@ export interface GamePageProps {
   createSecret?: () => number;
   now?: () => Date;
   createRecordId?: () => string;
+  createAccountId?: () => string;
+  hashPassword?: (password: string) => Promise<string>;
 }
 
 function defaultRecordId(): string {
@@ -29,7 +32,9 @@ export function GamePage({
   storage = window.localStorage,
   createSecret,
   now = () => new Date(),
-  createRecordId = defaultRecordId
+  createRecordId = defaultRecordId,
+  createAccountId,
+  hashPassword
 }: GamePageProps) {
   const [inputValue, setInputValue] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -38,12 +43,14 @@ export function GamePage({
     () => createSecret ?? (() => createRandomSecret(1, 100, Math.random)),
     [createSecret]
   );
+  const profile = useLocalProfile({ storage, createAccountId, hashPassword });
+  const handleFinished = useCallback((finishedState: Parameters<typeof profile.recordGame>[0]) => {
+    profile.recordGame(finishedState, now(), createRecordId());
+  }, [createRecordId, now, profile.recordGame]);
   const game = useSinglePlayerGame({
     config: gameConfig,
     createSecret: secretFactory,
-    storage,
-    now,
-    createRecordId
+    onFinished: handleFinished
   });
 
   function handleChange(value: string) {
@@ -81,8 +88,8 @@ export function GamePage({
 
         <p className="intro">我在 <strong>1–100</strong> 之间藏了一个数字，你有 <strong>9 次机会</strong>找到它。</p>
         <section className="profile-strip" aria-label="游客积分">
-          <strong>游客</strong>
-          <span>{game.profile.points} 积分</span>
+          <strong>{profile.currentAccount.username}</strong>
+          <span>{profile.currentAccount.points} 积分</span>
         </section>
 
         <GameFeedback feedback={game.feedback} />
@@ -111,7 +118,8 @@ export function GamePage({
         <ResultPanel state={game.state} onRestart={handleRestart} />
         <HistoryDialog
           open={historyOpen}
-          profile={game.profile}
+          profile={profile.currentAccount}
+          ownerLabel={profile.currentAccount.username}
           onClose={() => setHistoryOpen(false)}
           returnFocusRef={historyTriggerRef}
         />

@@ -90,13 +90,7 @@ function normalizeRecord(value: unknown, index: number): GameRecord | null {
   };
 }
 
-function normalizeRegisteredAccount(id: string, value: unknown): LocalAccount | null {
-  if (!value || typeof value !== "object") return null;
-  const source = value as Record<string, unknown>;
-  const username = typeof source.username === "string" ? source.username.trim().slice(0, 16) : "";
-  const passwordHash = typeof source.passwordHash === "string" ? source.passwordHash : "";
-  if (username.length < 2 || !passwordHash) return null;
-
+function normalizeProgress(source: Record<string, unknown>): Pick<LocalAccount, "points" | "records"> {
   const numericPoints = Number(source.points);
   const points = Number.isFinite(numericPoints) ? Math.max(0, Math.floor(numericPoints)) : 0;
   const records = Array.isArray(source.records)
@@ -105,8 +99,17 @@ function normalizeRegisteredAccount(id: string, value: unknown): LocalAccount | 
         .filter((record): record is GameRecord => record !== null)
         .slice(0, MAX_RECORDS)
     : [];
+  return { points, records };
+}
 
-  return { id, username, isGuest: false, passwordHash, points, records };
+function normalizeRegisteredAccount(id: string, value: unknown): LocalAccount | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const username = typeof source.username === "string" ? source.username.trim().slice(0, 16) : "";
+  const passwordHash = typeof source.passwordHash === "string" ? source.passwordHash : "";
+  if (username.length < 2 || !passwordHash) return null;
+
+  return { id, username, isGuest: false, passwordHash, ...normalizeProgress(source) };
 }
 
 function normalizeLocalProfile(value: unknown): LocalProfileState {
@@ -115,7 +118,13 @@ function normalizeLocalProfile(value: unknown): LocalProfileState {
   const accountSource = source.accounts && typeof source.accounts === "object" && !Array.isArray(source.accounts)
     ? source.accounts as Record<string, unknown>
     : {};
-  const accounts: Record<string, LocalAccount> = { [GUEST_ID]: createGuestAccount() };
+  const guestSource = accountSource[GUEST_ID];
+  const guestProgress = guestSource && typeof guestSource === "object"
+    ? normalizeProgress(guestSource as Record<string, unknown>)
+    : { points: 0, records: [] };
+  const accounts: Record<string, LocalAccount> = {
+    [GUEST_ID]: { ...createGuestAccount(), ...guestProgress }
+  };
 
   for (const [id, account] of Object.entries(accountSource)) {
     if (id === GUEST_ID) continue;

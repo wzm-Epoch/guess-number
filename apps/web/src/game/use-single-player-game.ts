@@ -1,14 +1,6 @@
 import { createGame, submitGuess, type GameConfig, type GameState } from "@guess-number/game-core";
 import { useCallback, useState } from "react";
 
-import {
-  loadGuestProfile,
-  recordFinishedGame,
-  saveGuestProfile,
-  type GuestProfile,
-  type StorageLike
-} from "../storage/guest-profile";
-
 export interface GameFeedbackState {
   tone: "ready" | "low" | "high" | "correct" | "lost";
   symbol: string;
@@ -19,9 +11,7 @@ export interface GameFeedbackState {
 export interface SinglePlayerGameOptions {
   config: GameConfig;
   createSecret: () => number;
-  storage: StorageLike;
-  now: () => Date;
-  createRecordId: () => string;
+  onFinished: (state: GameState) => void;
 }
 
 const readyFeedback: GameFeedbackState = {
@@ -65,9 +55,8 @@ function feedbackFor(state: GameState, outcome: "low" | "high" | "correct" | "lo
 }
 
 export function useSinglePlayerGame(options: SinglePlayerGameOptions) {
-  const { config, createSecret, storage, now, createRecordId } = options;
+  const { config, createSecret, onFinished } = options;
   const [state, setState] = useState(() => createGame(config, createSecret()));
-  const [profile, setProfile] = useState<GuestProfile>(() => loadGuestProfile(storage));
   const [feedback, setFeedback] = useState<GameFeedbackState>(readyFeedback);
   const [error, setError] = useState("");
 
@@ -102,22 +91,13 @@ export function useSinglePlayerGame(options: SinglePlayerGameOptions) {
     setFeedback(feedbackFor(result.state, result.outcome));
 
     if (result.state.status === "won" || result.state.status === "lost") {
-      setProfile((currentProfile) => {
-        const nextProfile = recordFinishedGame(
-          currentProfile,
-          result.state,
-          now(),
-          createRecordId()
-        );
-        saveGuestProfile(storage, nextProfile);
-        return nextProfile;
-      });
+      onFinished(result.state);
     }
 
     return true;
-  }, [config.maxNumber, config.minNumber, createRecordId, now, state, storage]);
+  }, [config.maxNumber, config.minNumber, onFinished, state]);
 
   const clearError = useCallback(() => setError(""), []);
 
-  return { state, profile, feedback, error, submit, restart, clearError };
+  return { state, feedback, error, submit, restart, clearError };
 }

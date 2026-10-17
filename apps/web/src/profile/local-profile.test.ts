@@ -86,7 +86,7 @@ describe("local profile persistence", () => {
       username: "游客",
       isGuest: true,
       passwordHash: "",
-      points: 0
+      points: 50
     });
     expect(profile.accounts.invalid).toBeUndefined();
     expect(profile.accounts.alice).toMatchObject({
@@ -143,5 +143,30 @@ describe("local profile persistence", () => {
 
     storage.throwOnWrite = true;
     expect(saveLocalProfile(storage, state)).toBe(false);
+  });
+
+  it("preserves normalized guest progress when saving", () => {
+    const storage = new MemoryStorage();
+    const state = createInitialLocalProfile();
+    state.accounts.guest.points = 1;
+    state.accounts.guest.records = [{
+      id: "win-1",
+      result: "won",
+      attempts: 1,
+      secretNumber: 42,
+      guesses: [42],
+      pointsEarned: 1,
+      playedAt: "2026-10-17T12:00:00.000Z"
+    }];
+
+    expect(saveLocalProfile(storage, state)).toBe(true);
+    expect(JSON.parse(storage.values.get(storageKey) ?? "null")).toMatchObject({
+      accounts: {
+        guest: {
+          points: 1,
+          records: [{ id: "win-1", result: "won", secretNumber: 42 }]
+        }
+      }
+    });
   });
 });

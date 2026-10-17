@@ -1,11 +1,11 @@
 import type { RefObject } from "react";
 
-import type { GuestProfile } from "../storage/guest-profile";
+import type { LocalAccount } from "../profile/local-profile";
 import { Dialog } from "./Dialog";
 
 interface HistoryDialogProps {
   open: boolean;
-  profile: GuestProfile;
+  profile: Pick<LocalAccount, "points" | "records">;
   ownerLabel?: string;
   onClose: () => void;
   returnFocusRef: RefObject<HTMLElement | null>;
