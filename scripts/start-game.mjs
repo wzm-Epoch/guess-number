@@ -1,7 +1,10 @@
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 export function parseNodeMajor(version) {
   if (typeof version !== "string") {
@@ -29,6 +32,8 @@ export function buildViteArgs(port) {
   return [
     "run",
     "dev",
+    "--workspace",
+    "@guess-number/web",
     "--",
     "--host",
     "127.0.0.1",
@@ -111,4 +116,133 @@ export async function waitForServer(url, child, options = {}) {
     const delayMs = Math.min(pollIntervalMs, Math.max(0, deadline - now()));
     if (delayMs > 0) await delay(delayMs);
   }
+}
+
+export function registerChildCleanup(signalSource, child) {
+  const handleInterrupt = () => {
+    if (child.exitCode === null && !child.killed) child.kill();
+  };
+  signalSource.once("SIGINT", handleInterrupt);
+  return () => signalSource.off("SIGINT", handleInterrupt);
+}
+
+export function buildNpmInvocation(args, commandProcessor = process.env.ComSpec ?? "cmd.exe") {
+  return {
+    command: commandProcessor,
+    args: ["/d", "/c", "npm.cmd", ...args]
+  };
+}
+
+export async function runLauncher(options) {
+  const {
+    projectRoot,
+    nodeVersion = process.version,
+    exists = existsSync,
+    installDependencies,
+    findPort = findAvailablePort,
+    spawnVite,
+    waitUntilReady = waitForServer,
+    openBrowser,
+    writeLine = console.log
+  } = options;
+
+  if (!isSupportedNodeVersion(nodeVersion)) {
+    throw new Error(`需要 Node.js 24 或更高版本，当前版本是 ${nodeVersion}。`);
+  }
+
+  if (needsDependencyInstall(projectRoot, exists)) {
+    writeLine("首次运行，正在按锁定版本安装依赖……");
+    await installDependencies(projectRoot);
+  }
+
+  const port = await findPort();
+  const url = `http://127.0.0.1:${port}/`;
+  const child = spawnVite(buildViteArgs(port), projectRoot);
+
+  try {
+    await waitUntilReady(url, child);
+  } catch (error) {
+    if (child.exitCode === null && !child.killed) child.kill();
+    throw error;
+  }
+
+  writeLine(`游戏已启动：${url}`);
+  try {
+    await openBrowser(url);
+  } catch {
+    writeLine(`无法自动打开浏览器，请手动复制此地址：${url}`);
+  }
+
+  return { url, child };
+}
+
+function installWithNpm(projectRoot) {
+  const invocation = buildNpmInvocation(["ci"]);
+  const result = spawnSync(invocation.command, invocation.args, {
+    cwd: projectRoot,
+    stdio: "inherit",
+    windowsHide: false
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`npm ci failed with exit code ${result.status ?? "unknown"}.`);
+  }
+}
+
+function startVite(args, projectRoot) {
+  const invocation = buildNpmInvocation(args);
+  return spawn(invocation.command, invocation.args, {
+    cwd: projectRoot,
+    stdio: "inherit",
+    windowsHide: false
+  });
+}
+
+function openDefaultBrowser(url) {
+  if (process.platform !== "win32") {
+    throw new Error("The double-click launcher supports Windows only.");
+  }
+  return new Promise((resolve, reject) => {
+    const opener = spawn("cmd.exe", ["/d", "/c", "start", "", url], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true
+    });
+    opener.once("error", reject);
+    opener.once("spawn", () => {
+      opener.unref();
+      resolve();
+    });
+  });
+}
+
+async function main() {
+  const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const result = await runLauncher({
+    projectRoot,
+    installDependencies: installWithNpm,
+    spawnVite: startVite,
+    openBrowser: openDefaultBrowser
+  });
+  const unregister = registerChildCleanup(process, result.child);
+  console.log("关闭此窗口或按 Ctrl+C 可停止游戏。");
+
+  if (result.child.exitCode === null) {
+    const [exitCode] = await once(result.child, "exit");
+    process.exitCode = exitCode ?? 1;
+  } else {
+    process.exitCode = result.child.exitCode;
+  }
+  unregister();
+}
+
+const directEntry = process.argv[1]
+  ? pathToFileURL(path.resolve(process.argv[1])).href
+  : "";
+
+if (import.meta.url === directEntry) {
+  main().catch((error) => {
+    console.error(`启动失败：${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  });
 }
