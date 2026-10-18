@@ -12,7 +12,9 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
-  padding: 18px 14px 94px;
+  display: grid;
+  place-items: center;
+  padding: 14px;
   color: var(--text);
   font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
   background:

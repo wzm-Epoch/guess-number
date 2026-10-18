@@ -1,18 +1,21 @@
 .profile-strip {
-  gap: 13px;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  gap: 12px;
+  justify-content: initial;
 }
 
 .level-orb {
   display: grid;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   flex: 0 0 auto;
   place-content: center;
-  border: 1px solid var(--line-strong);
-  border-radius: 17px;
-  color: var(--accent);
-  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 15px;
+  color: #fff;
+  background: linear-gradient(145deg, var(--primary), var(--primary-strong));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   text-align: center;
 }
 
@@ -174,6 +177,8 @@
 }
 
 @media (max-width: 430px) {
+  .profile-strip { grid-template-columns: 44px minmax(0, 1fr); gap: 10px; }
+  .level-orb { width: 42px; height: 42px; border-radius: 13px; }
   .profile-summary-line { font-size: 12px; }
   .leaderboard-summary { align-items: flex-start; flex-direction: column; gap: 5px; }
   .leaderboard-item { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 8px; }

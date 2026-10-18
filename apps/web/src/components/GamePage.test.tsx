@@ -28,6 +28,8 @@ function renderGame(secretNumbers: number[] = [42]) {
       storage={storage}
       createSecret={createSecret}
       createRecordId={createRecordId}
+      createAccountId={() => "user-alice"}
+      hashPassword={async (password) => `hash:${password}`}
       now={() => new Date("2026-10-16T13:00:00.000Z")}
     />
   );
@@ -127,5 +129,64 @@ describe("GamePage", () => {
         }
       }
     });
+  });
+
+  it("keeps the offline top actions in order without an online entry", () => {
+    renderGame();
+
+    const actions = within(screen.getByLabelText("游戏操作")).getAllByRole("button");
+    expect(actions.map((button) => button.textContent)).toEqual(["登录", "排行", "战绩", "重开"]);
+    expect(screen.queryByRole("button", { name: "联机" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/第二版本恢复/)).not.toBeInTheDocument();
+  });
+
+  it("registers, isolates guest data, and restores account ranking and history after login", async () => {
+    const user = userEvent.setup();
+    renderGame([42, 77]);
+
+    await user.click(screen.getByRole("button", { name: "登录" }));
+    const accountDialog = screen.getByRole("dialog", { name: "登录或注册" });
+    await user.click(within(accountDialog).getByRole("tab", { name: "注册" }));
+    await user.type(within(accountDialog).getByLabelText("用户名"), "Alice");
+    await user.type(within(accountDialog).getByLabelText("密码"), "pass");
+    await user.type(within(accountDialog).getByLabelText("确认密码"), "pass");
+    await user.click(within(accountDialog).getByRole("button", { name: "注册并登录" }));
+
+    expect(screen.queryByRole("dialog", { name: "登录或注册" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Alice" })).toBeInTheDocument();
+
+    await user.type(screen.getByRole("textbox", { name: "输入你的猜测" }), "42{Enter}");
+    expect(screen.getByLabelText("当前账号、积分与等级")).toHaveTextContent("Alice");
+    expect(screen.getByLabelText("当前账号、积分与等级")).toHaveTextContent("1 积分");
+    expect(screen.getByLabelText("当前等级")).toHaveTextContent("2");
+    await user.click(screen.getByRole("button", { name: "再玩一局" }));
+
+    await user.click(screen.getByRole("button", { name: "排行" }));
+    const ranking = screen.getByRole("dialog", { name: "排行榜" });
+    expect(within(ranking).getByRole("article")).toHaveTextContent("Alice");
+    expect(within(ranking).getByRole("article")).toHaveTextContent("1 分");
+    await user.click(within(ranking).getByRole("button", { name: "关闭" }));
+
+    await user.click(screen.getByRole("button", { name: "战绩" }));
+    const history = screen.getByRole("dialog", { name: "历史记录" });
+    expect(within(history).getByText("第 1 次猜中")).toBeInTheDocument();
+    await user.click(within(history).getByRole("button", { name: "关闭" }));
+
+    await user.click(screen.getByRole("button", { name: "Alice" }));
+    await user.click(within(screen.getByRole("dialog", { name: "登录或注册" })).getByRole("button", { name: "退出登录" }));
+    expect(screen.getByRole("button", { name: "登录" })).toBeInTheDocument();
+    expect(screen.getByLabelText("当前账号、积分与等级")).toHaveTextContent("游客");
+    expect(screen.getByLabelText("当前账号、积分与等级")).toHaveTextContent("0 积分");
+
+    await user.click(screen.getByRole("button", { name: "登录" }));
+    const loginDialog = screen.getByRole("dialog", { name: "登录或注册" });
+    await user.type(within(loginDialog).getByLabelText("用户名"), "alice");
+    await user.type(within(loginDialog).getByLabelText("密码"), "pass{Enter}");
+
+    expect(screen.queryByRole("dialog", { name: "登录或注册" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Alice" })).toBeInTheDocument();
+    expect(screen.getByLabelText("当前账号、积分与等级")).toHaveTextContent("1 积分");
+    await user.click(screen.getByRole("button", { name: "战绩" }));
+    expect(within(screen.getByRole("dialog", { name: "历史记录" })).getByText("第 1 次猜中")).toBeInTheDocument();
   });
 });

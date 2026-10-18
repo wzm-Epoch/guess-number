@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type RefObject } from "react";
+import { useEffect, useState, type FormEvent, type RefObject } from "react";
 
 import type { AuthResult, LoginInput, RegisterInput } from "../profile/local-auth";
 import type { LocalAccount } from "../profile/local-profile";
@@ -34,6 +34,15 @@ export function AccountDialog({
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) return;
+    setMode("login");
+    setUsername("");
+    setPassword("");
+    setConfirmation("");
+    setError("");
+  }, [open]);
 
   function selectMode(nextMode: AuthMode) {
     setMode(nextMode);

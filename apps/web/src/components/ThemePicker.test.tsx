@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -11,11 +11,17 @@ class MemoryStorage {
 }
 
 describe("ThemePicker", () => {
-  it("renders and applies all five themes", async () => {
+  it("keeps a background trigger visible and expands all five themes", async () => {
     expect(themePickerModule.ThemePicker).toBeTypeOf("function");
     const user = userEvent.setup();
     const storage = new MemoryStorage();
     render(<themePickerModule.ThemePicker storage={storage} />);
+
+    const trigger = screen.getByRole("button", { name: "背景" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "午夜" })).not.toBeInTheDocument();
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
 
     const options = [
       ["午夜", "midnight"],
@@ -31,11 +37,26 @@ describe("ThemePicker", () => {
     }
   });
 
+  it("closes the theme panel with Escape without removing the trigger", async () => {
+    const user = userEvent.setup();
+    render(<themePickerModule.ThemePicker storage={new MemoryStorage()} />);
+
+    const trigger = screen.getByRole("button", { name: "背景" });
+    await user.click(trigger);
+    expect(screen.getByRole("button", { name: "午夜" })).toBeVisible();
+    await user.keyboard("{Escape}");
+
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "午夜" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
   it("restores a saved theme and falls back for an unknown value", () => {
     const saved = new MemoryStorage();
     saved.values.set("number-detective.theme.v1", "ocean");
     const { unmount } = render(<themePickerModule.ThemePicker storage={saved} />);
     expect(document.documentElement.dataset.theme).toBe("ocean");
+    fireEvent.click(screen.getByRole("button", { name: "背景" }));
     expect(screen.getByRole("button", { name: "深海" })).toHaveAttribute("aria-pressed", "true");
     unmount();
 

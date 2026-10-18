@@ -15,11 +15,28 @@ test("wins deterministically and keeps the saved history after reload", async ({
 
 test("restores the selected theme after reload", async ({ page }) => {
   await page.goto("/");
+  const background = page.getByRole("button", { name: "背景" });
+  await expect(background).toHaveAttribute("aria-expanded", "false");
+  await background.click();
   await page.getByRole("button", { name: "森林" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "forest");
+  await page.keyboard.press("Escape");
+  await expect(background).toHaveAttribute("aria-expanded", "false");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "forest");
+  await page.getByRole("button", { name: "背景" }).click();
   await expect(page.getByRole("button", { name: "森林" })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("restarts cleanly after a result", async ({ page }) => {
+  await page.goto("/");
+  const input = page.getByRole("textbox", { name: "输入你的猜测" });
+  await input.fill("42");
+  await input.press("Enter");
+  await page.getByRole("button", { name: "再玩一局" }).click();
+  await expect(input).toBeEnabled();
+  await expect(page.getByLabel("游戏进度")).toContainText("1–100");
+  await expect(page.getByRole("heading", { name: "恭喜你，猜对了！" })).toBeHidden();
 });
 
 test("supports keyboard-only guess submission", async ({ page }) => {
@@ -47,16 +64,25 @@ test("honors reduced-motion preferences", async ({ page }) => {
   expect(reducedDuration).toBeLessThanOrEqual(0.00001);
 });
 
-test.describe("mobile layout", () => {
-  test.use({ viewport: { width: 390, height: 844 } });
+for (const viewport of [{ width: 320, height: 700 }, { width: 390, height: 844 }]) {
+  test.describe(`mobile layout ${viewport.width}x${viewport.height}`, () => {
+    test.use({ viewport });
 
-  test("keeps the guess form visible without horizontal overflow", async ({ page }) => {
+    test("keeps the guess form visible without horizontal overflow", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("textbox", { name: "输入你的猜测" })).toBeVisible();
+    await expect(page.getByLabel("游戏操作").getByRole("button")).toHaveText(["登录", "排行", "战绩", "重开"]);
+    await expect(page.getByRole("button", { name: "联机" })).toHaveCount(0);
     const dimensions = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
-      innerWidth: window.innerWidth
+      innerWidth: window.innerWidth,
+      inputTop: document.querySelector<HTMLInputElement>("#guess-input")?.getBoundingClientRect().top ?? -1,
+      inputBottom: document.querySelector<HTMLInputElement>("#guess-input")?.getBoundingClientRect().bottom ?? -1,
+      innerHeight: window.innerHeight
     }));
     expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.innerWidth);
+    expect(dimensions.inputTop).toBeGreaterThanOrEqual(0);
+    expect(dimensions.inputBottom).toBeLessThanOrEqual(dimensions.innerHeight);
+    });
   });
-});
+}
